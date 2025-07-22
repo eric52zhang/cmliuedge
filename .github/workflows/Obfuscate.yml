@@ -5,7 +5,7 @@ on:
     branches:
       - main  # 主分支推送时触发
   schedule:
-    - cron: "0 3 * * *"  # 每天凌晨3点自动运行（UTC时间）
+    - cron: "0 3 * * *"  # 每天凌晨3点自动运行
   workflow_dispatch:     # 支持在GitHub网页手动触发工作流
 
 permissions:
@@ -17,69 +17,62 @@ jobs:
 
     steps:
       # 步骤1：检出仓库代码
-      - name: 检出代码
-        uses: actions/checkout@v4  # 官方检出动作
+      - name: Check out the code
+        uses: actions/checkout@v4
 
       # 步骤2：设置Node.js环境
-      - name: 设置Node.js环境
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "latest"  # 使用最新版Node.js
+          node-version: "latest"
 
       # 步骤3：安装所需依赖
-      - name: 安装依赖
+      - name: Install dependencies
         run: |
-          npm install -g javascript-obfuscator  # 全局安装JavaScript混淆工具
-          sudo apt-get install -y unzip          # 安装解压工具
+          npm install -g javascript-obfuscator
+          sudo apt-get install -y unzip
 
       # 步骤4：清理旧文件
-      - name: 清理旧文件
+      - name: Clean existing obfuscated files
         run: |
-          rm -f _worker.js*  # 删除现有混淆文件
-          rm -f origin.js    # 删除原始文件副本
+          rm -f _worker.js* origin.js
 
-      # 步骤5：下载最新worker脚本
-      - name: 下载最新worker脚本
+      # 步骤5：下载最新worker脚本_worker.js重命名为origin.js
+      - name: Download latest cmliu_edge worker
         run: |
-          # 从cmliu仓库直接下载最新worker脚本
           wget https://raw.githubusercontent.com/cmliu/edgetunnel/refs/heads/main/_worker.js -O origin.js
 
       # 步骤6：执行JavaScript混淆
-      - name: 执行JavaScript混淆
+      - name: Obfuscate JavaScript
         run: |
-          # 使用javascript-obfuscator进行高级混淆
           javascript-obfuscator origin.js --output _worker.js \
-          --compact true \                     # 压缩代码
-          --identifier-names-generator hexadecimal \  # 使用十六进制标识符
-          --rename-globals true \              # 重命名全局变量
-          --string-array true \                # 启用字符串阵列
-          --string-array-encoding 'base64' \   # 使用base64编码字符串
-          --string-array-threshold 0.75 \       # 75%以上字符串进入阵列
-          --transform-object-keys true \        # 转换对象键名
-          --self-defending false \             # 关闭自我防御（避免额外代码）
-          --simplify true                      # 简化控制流
+          --compact true \
+          --identifier-names-generator hexadecimal \
+          --rename-globals true \
+          --string-array true \
+          --string-array-encoding 'base64' \
+          --string-array-threshold 0.75 \
+          --transform-object-keys true \
+          --self-defending false \
+          --simplify true
 
       # 步骤7：检查文件变更
-      - name: 检查文件变更
-        id: changes  # 步骤标识，用于后续引用
+      - name: Check file changes
+        id: changes
         run: |
-          # 检测混淆后的文件是否有实际变化
           if git diff --quiet --exit-code _worker.js; then
-            # 无变化时设置输出变量
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "文件无变化，跳过提交"
           else
-            # 检测到变化时设置输出变量
             echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "检测到文件变更，准备提交"
+            echo "Changes detected in _worker.js"
           fi
 
       # 步骤8：条件提交变更
-      - name: 提交变更
-        if: ${{ steps.changes.outputs.has_changes == 'true' }}  # 仅在检测到变更时执行
-        uses: stefanzweifel/git-auto-commit-action@v5  # 自动提交动作
+      - name: Commit and push changes
+        if: ${{ steps.changes.outputs.has_changes == 'true' }}
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          branch: main  # 目标分支
-          commit_message: ':arrow_up: 自动更新cmliu_edge worker'  # 提交信息
-          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'  # 提交者信息
-          file_pattern: _worker.js  # 只提交特定文件
+          branch: main
+          commit_message: ':arrow_up: update latest cmliu_edge'
+          commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+          file_pattern: _worker.js
