@@ -34,9 +34,9 @@ jobs:
 
       - name: Download and rename latest worker  # 下载原始 worker 文件并重命名为 origin.js
         run: |
-          wget https://github.com/cmliu/edgetunnel/blob/main/_worker.js -O origin.js
+          wget https://raw.githubusercontent.com/cmliu/edgetunnel/refs/heads/main/_worker.js -O origin.js
 
-      - name: Obfuscate cmliu_edgetunnel worker js  # 执行混淆处理，输出为 _worker.js
+      - name: Obfuscate cmliu_edge worker js  # 执行混淆处理，输出为 _worker.js
         run: |
           javascript-obfuscator origin.js --output _worker.js \
           --compact true \
