@@ -1,43 +1,43 @@
-name: Build Obfuscate cmliu_edge  # 工作流程名称
+name: Build Obfuscate cmliu_edge
 
 on:
   push:
     branches:
-      - main   # 当推送到 main 分支时触发
+      - main
   schedule:
-    - cron: "0 3 * * *"  # 每天凌晨3点（UTC）自动运行
-  workflow_dispatch:     # 允许手动触发
+    - cron: "0 3 * * *"  # 每天凌晨3点自动运行
+  workflow_dispatch:     # 支持手动运行
 
 permissions:
-  contents: write  # 允许写入仓库内容（用于提交更改）
+  contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 虚拟机运行任务
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Check out the code  # 拉取仓库代码
+      - name: Check out the code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js  # 设置 Node.js 环境
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "latest"  # 使用最新版本的 Node.js
+          node-version: "latest"
 
-      - name: Install dependencies  # 安装 JavaScript 混淆工具
+      - name: Install dependencies
         run: |
           npm install -g javascript-obfuscator
-
-      - name: Clean existing obfuscated files  # 清理旧的混淆文件
+          sudo apt-get install -y unzip
+      - name: Clean existing obfuscated files  # 新增清理步骤
         run: |
-          rm -f _worker.js* origin.js
+          rm -f _worker.js*
 
-      - name: Download and rename latest worker  # 下载原始 worker 文件并重命名为 origin.js
+      - name: Download and extract latest cmliu_edge worker
         run: |
           wget https://raw.githubusercontent.com/cmliu/edgetunnel/refs/heads/main/_worker.js
           mv _worker.js origin.js
 
-      - name: Obfuscate cmliu_edge worker js  # 执行混淆处理，输出为 _worker.js
+      - name: Obfuscate cmliu_edge worker js
         run: |
           javascript-obfuscator origin.js --output _worker.js \
           --compact true \
@@ -50,19 +50,10 @@ jobs:
           --self-defending false \
           --simplify true
 
-      - name: Check if obfuscated file has changed  # 判断混淆后的文件是否有变动
-        id: diffcheck
-        run: |
-          if git diff --quiet _worker.js; then
-            echo "no_changes=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "no_changes=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Commit and push changes if needed  # 如果文件有变化则提交更改
-        if: steps.diffcheck.outputs.no_changes == 'false'
+      - name: 提交更改
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
           commit_message: ':arrow_up: update latest cmliu_edge'
           commit_author: 'github-actions[bot] <github-actions[bot]@users.noreply.github.com>'
+          push_options: '--set-upstream'
