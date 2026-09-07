@@ -169,6 +169,10 @@ export default {
                     const fakeConfig = await 生成配置信息(userID, request.headers.get('Host'), sub, 'CF-Workers-SUB', RproxyIP, url, fakeUserID, fakeHostName, env);
                     return new Response(`${fakeConfig}`, { status: 200 });
                 } else if (url.pathname == `/${动态UUID}/edit` || 路径 == `/${userID}/edit`) {
+                    const editKey = env.EDITKEY;
+                    if (!editKey || url.searchParams.get('token') !== editKey) {
+                        return new Response('Unauthorized', { status: 401 });
+                    }
                     return await KV(request, env);
                 } else if (url.pathname == `/${动态UUID}/bestip` || 路径 == `/${userID}/bestip`) {
                     return await bestIP(request, env);
